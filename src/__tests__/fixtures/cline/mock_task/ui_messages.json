@@ -1,0 +1,22 @@
+[
+  {
+    "type": "user",
+    "content": "How do I implement database migration in my project?",
+    "timestamp": 1717200000000
+  },
+  {
+    "type": "assistant",
+    "content": "To implement database migration, you can use tools like Alembic for Python or Flyway for Java. Let me walk you through the steps:\n\n1. Install the migration tool\n2. Create a migration script\n3. Run the migration\n\nWould you like me to show you a specific example?",
+    "timestamp": 1717200060000
+  },
+  {
+    "type": "user",
+    "content": "Show me an example using Alembic with SQLAlchemy",
+    "timestamp": 1717200120000
+  },
+  {
+    "type": "assistant",
+    "content": "Here's how to set up Alembic with SQLAlchemy:\n\n```bash\npip install alembic\nalembic init migrations\n```\n\nThen configure `alembic.ini` with your database URL.",
+    "timestamp": 1717200180000
+  }
+]

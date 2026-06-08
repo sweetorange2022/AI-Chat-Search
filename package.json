@@ -1,0 +1,78 @@
+{
+  "name": "ai-chat-search",
+  "displayName": "AI Chat Search",
+  "description": "Search and navigate AI chat history from Cline, Continue, Copilot and more",
+  "version": "0.1.0",
+  "publisher": "ai-chat-tools",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "aiChatSearch.search",
+        "title": "Search AI Chat History",
+        "icon": "$(search)"
+      },
+      {
+        "command": "aiChatSearch.refreshIndex",
+        "title": "Refresh AI Chat Index",
+        "icon": "$(refresh)"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "aiChatSearch.search",
+        "key": "ctrl+shift+;",
+        "mac": "cmd+shift+;"
+      }
+    ],
+    "configuration": {
+      "title": "AI Chat Search",
+      "properties": {
+        "aiChatSearch.providers.cline.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Cline chat history search"
+        },
+        "aiChatSearch.providers.cline.dataPath": {
+          "type": "string",
+          "default": "",
+          "description": "Custom Cline data path (auto-detected if empty)"
+        },
+        "aiChatSearch.maxResults": {
+          "type": "number",
+          "default": 50,
+          "description": "Maximum search results to display"
+        },
+        "aiChatSearch.contextLines": {
+          "type": "number",
+          "default": 3,
+          "description": "Number of context lines around each match"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --minify",
+    "watch": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --sourcemap --watch",
+    "lint": "tsc --noEmit",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/markdown-it": "^14.1.2",
+    "@types/node": "^20.11.0",
+    "@types/vscode": "^1.85.0",
+    "@vscode/vsce": "^2.22.0",
+    "esbuild": "^0.19.11",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+    "markdown-it": "^14.2.0"
+  }
+}

@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.vscode/
+*.vsix
+*.py
+portfolio-website/
+.DS_Store
+*.log
