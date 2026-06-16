@@ -1,6 +1,10 @@
 import * as vscode from 'vscode';
+import * as path from 'path';
+import * as os from 'os';
 import type { SessionStore } from '../store/sessionStore';
 import type { SessionLoader } from '../store/sessionLoader';
+
+const DEBOUNCE_MS = 2000;
 
 /**
  * File watcher — SRP: only responsible for detecting data file changes
@@ -8,6 +12,7 @@ import type { SessionLoader } from '../store/sessionLoader';
  */
 export class FileWatcher implements vscode.Disposable {
   private readonly watchers: vscode.FileSystemWatcher[] = [];
+  private readonly debounceTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
   constructor(
     private readonly store: SessionStore,
@@ -17,53 +22,95 @@ export class FileWatcher implements vscode.Disposable {
   }
 
   private setupWatchers(): void {
+    this.setupClineWatchers();
+    this.setupCursorWatchers();
+  }
+
+  private setupClineWatchers(): void {
     const appData = process.env.APPDATA;
     if (!appData) return;
 
-    // Watch Cline tasks directory for changes
-    const clineTasksPattern = new vscode.RelativePattern(
-      appData,
-      'Code/User/globalStorage/saoudrizwan.claude-dev/tasks/**/ui_messages.json',
-    );
+    const editorPaths = ['Code', 'Cursor', 'VSCodium'];
+    for (const editor of editorPaths) {
+      const clineTasksPattern = new vscode.RelativePattern(
+        appData,
+        `${editor}/User/globalStorage/saoudrizwan.claude-dev/tasks/**/ui_messages.json`,
+      );
 
-    const watcher = vscode.workspace.createFileSystemWatcher(clineTasksPattern);
-
-    // On file create or change — reload that specific task
-    watcher.onDidChange(uri => this.handleFileChange(uri));
-    watcher.onDidCreate(uri => this.handleFileChange(uri));
-    watcher.onDidDelete(uri => this.handleFileDeletion(uri));
-
-    this.watchers.push(watcher);
-  }
-
-  private handleFileChange(uri: vscode.Uri): void {
-    // Extract task ID from the URI path
-    const taskId = this.extractTaskId(uri.fsPath);
-    if (!taskId) return;
-
-    // Reload the specific provider — incremental update
-    const providers = this.loader.getProviderNames();
-    for (const name of providers) {
-      if (name === 'cline') {
-        // For incremental update, we reload the entire cline provider
-        // since loadAll is fast for the typical number of tasks
-        this.loader.loadAll().catch(err => {
-          console.error('AI Chat Search: Failed to reload after file change:', err);
-        });
-        break;
-      }
+      const watcher = vscode.workspace.createFileSystemWatcher(clineTasksPattern);
+      watcher.onDidChange(uri => this.handleClineChange(uri));
+      watcher.onDidCreate(uri => this.handleClineChange(uri));
+      watcher.onDidDelete(uri => this.handleClineDeletion(uri));
+      this.watchers.push(watcher);
     }
   }
 
-  private handleFileDeletion(uri: vscode.Uri): void {
+  private setupCursorWatchers(): void {
+    const globalStorageDir = this.getCursorGlobalStorageDir();
+    if (!globalStorageDir) return;
+
+    const pattern = new vscode.RelativePattern(
+      vscode.Uri.file(globalStorageDir),
+      'state.vscdb*',
+    );
+
+    const watcher = vscode.workspace.createFileSystemWatcher(pattern);
+    watcher.onDidChange(() => this.debouncedReload('cursor'));
+    watcher.onDidCreate(() => this.debouncedReload('cursor'));
+    this.watchers.push(watcher);
+  }
+
+  private getCursorGlobalStorageDir(): string | null {
+    const home = os.homedir();
+    switch (process.platform) {
+      case 'win32': {
+        const appData = process.env.APPDATA;
+        if (!appData) return null;
+        return path.join(appData, 'Cursor', 'User', 'globalStorage');
+      }
+      case 'darwin':
+        return path.join(home, 'Library', 'Application Support', 'Cursor', 'User', 'globalStorage');
+      default:
+        return path.join(home, '.config', 'Cursor', 'User', 'globalStorage');
+    }
+  }
+
+  private handleClineChange(_uri: vscode.Uri): void {
+    const providers = this.loader.getProviderNames();
+    if (providers.includes('cline')) {
+      this.debouncedReload('cline');
+    }
+  }
+
+  private handleClineDeletion(uri: vscode.Uri): void {
     const taskId = this.extractTaskId(uri.fsPath);
     if (taskId) {
       this.store.remove(taskId);
     }
   }
 
+  private debouncedReload(providerName: string): void {
+    const existing = this.debounceTimers.get(providerName);
+    if (existing !== undefined) {
+      clearTimeout(existing);
+    }
+
+    this.debounceTimers.set(providerName, setTimeout(() => {
+      this.debounceTimers.delete(providerName);
+      this.reloadProvider(providerName);
+    }, DEBOUNCE_MS));
+  }
+
+  private reloadProvider(providerName: string): void {
+    const providers = this.loader.getProviderNames();
+    if (!providers.includes(providerName)) return;
+
+    this.loader.loadAll().catch(err => {
+      console.error('AI Chat Search: Failed to reload after file change:', err);
+    });
+  }
+
   private extractTaskId(filePath: string): string | null {
-    // Path format: .../tasks/{taskId}/ui_messages.json
     const parts = filePath.replace(/\\/g, '/').split('/');
     const tasksIdx = parts.indexOf('tasks');
     if (tasksIdx === -1 || tasksIdx + 1 >= parts.length) {
@@ -73,6 +120,11 @@ export class FileWatcher implements vscode.Disposable {
   }
 
   dispose(): void {
+    for (const timer of this.debounceTimers.values()) {
+      clearTimeout(timer);
+    }
+    this.debounceTimers.clear();
+
     for (const watcher of this.watchers) {
       watcher.dispose();
     }

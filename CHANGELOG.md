@@ -2,6 +2,99 @@
 
 本文档包含完整的项目信息和全部源码，可用于完整复现此插件。
 
+## 2026-06-16 — v0.2.1 构建修复与稳定性改进
+
+### 修复内容
+
+1. **修复扩展无法激活（`command not found`）**
+   - esbuild 的 `--minify` 选项会进行标识符混淆，将 `activate`/`deactivate` 函数名缩短，同时 tree-shaking 会删除 `module.exports` 中的导出语句
+   - 将构建参数从 `--minify` 改为 `--minify-syntax --minify-whitespace --tree-shaking=false`，保留变量名并禁用 tree-shaking
+
+2. **修复 better-sqlite3 native 模块导致启动崩溃**
+   - `better-sqlite3` 的 native binding 代码（`.node` 文件加载）被 esbuild 内联打包到 bundle 中，导致加载时立即崩溃
+   - 添加 `--external:better-sqlite3` 防止 native 模块被内联
+
+3. **修复 `promisify is not defined` 运行时错误**
+   - `src/providers/cursor.ts` 中 `const execFileAsync = promisify(execFile)` 引用了未导入的 `promisify` 和 `execFile`
+   - 该变量从未被使用，属于遗留死代码，已移除
+
+### 构建配置变更
+
+```diff
+- "build": "esbuild ... --minify"
++ "build": "esbuild ... --external:better-sqlite3 --minify-syntax --minify-whitespace --tree-shaking=false"
+```
+
+---
+
+## 2026-06-09 — v0.2.0 完整多提供商 + Cursor/Copilot 高级支持（0.2.0~0.2.7 全部功能汇总）
+
+### 项目概述
+
+VS Code / Cursor 扩展：跨会话搜索 **Cursor、Cline、Continue、Copilot Chat** 等 AI 聊天历史，自定义 Webview 预览，内置 Ctrl+F 搜索栏，支持大库流式加载与“最近优先、无等待”体验。
+
+### 核心能力（最终版）
+
+- **四提供商完整支持**
+  - Cursor 原生聊天（Composer / Agent / Chat）：通过 Cursor 自带 `resources/helpers/node.exe` 子进程 + node:sqlite 读取 2GB+ `state.vscdb`
+  - Cline、Continue、**Copilot Chat**（JSONL 会话解析）
+- **Cursor 性能优化**
+  - spawn 流式 + NDJSON 逐会话输出，**最近对话最先索引和可搜索**
+  - 默认只索引最近 **10** 个 Cursor 会话（可配置 0=不限）
+  - 单消息内容截断 **256KB**（实测 10 会话下最优流畅点，~7.5s 完成，无明显等待）
+- **Copilot Chat Provider**：支持 VS Code / Cursor Copilot 的 JSONL 格式会话（请求/响应/变量）
+- **配置与诊断**
+  - 每个 provider 独立 `enabled` / `dataPath` / Cursor `maxSessions`
+  - 刷新后显示来源分项统计（cursor: N, cline: N ...）
+  - Output 面板 “AI Chat Search” 详细日志 + 空索引警告
+- **文件监听**：Cline + Cursor `state.vscdb*`（含 WAL）增量更新
+- **体验一致性**：完整日期时间 `YYYY/MM/DD HH:MM:SS`、模型名称、智能内容过滤、文档级去重、预览内 Ctrl+F 等
+
+### 主要技术演进（0.2.0~0.2.7 关键改进汇总）
+
+- 多数据源架构 + Cursor Provider 初始实现（sql.js / 早期 worker）
+- 大库兼容：node:sqlite → better-sqlite3 尝试 → 最终 spawn + Cursor helper node.exe 子进程方案
+- 稳定性：异常 composerData 跳过、临时文件输出、消息截断
+- 流式体验：execFile → spawn 流式 + NDJSON，最近优先加载
+- 极限调优：默认 10 会话 + 256KB（实测流畅），支持用户按需扩大
+- Copilot 完整接入 + 配置项
+- 文档、README、CHANGELOG 完善，诊断输出增强
+
+### 使用的技术
+
+| 类别 | 技术 |
+|------|------|
+| 语言 / 构建 | TypeScript + esbuild |
+| SQLite（大库） | Cursor 内置 node.exe + node:sqlite（worker 子进程） |
+| 流式通信 | NDJSON over stdout（spawn） |
+| Markdown 渲染 | markdown-it |
+| VS Code API | WebviewPanel、QuickPick、FileSystemWatcher、OutputChannel |
+
+### 依赖（v0.2.0 最终）
+
+```json
+{
+  "dependencies": {
+    "markdown-it": "^14.2.0",
+    "sql.js": "^1.12.0"
+  }
+}
+```
+
+### 关键新增/修改文件（累计）
+
+- `src/providers/cursor.ts` + `src/cursor-worker.js` （spawn 流式、NDJSON、截断）
+- `src/providers/copilot.ts` （Copilot JSONL 解析）
+- `src/providers/continue.ts`、`src/providers/cline.ts`（多源）
+- `src/infra/fileWatcher.ts`（Cursor 监听）
+- `src/extension.ts`（四 Provider 注册 + 配置 + 诊断）
+- `scripts/copy-wasm.js` 等构建辅助
+- 完整测试 fixture 与极限测试脚本
+
+---
+
+## 2026-06-08 — v0.1.0 初版（Cline 基础）
+
 ## 2026-06-08 — v0.1.0 初版
 
 ### 项目概述

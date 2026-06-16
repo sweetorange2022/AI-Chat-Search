@@ -1,16 +1,24 @@
 {
   "name": "ai-chat-search",
   "displayName": "AI Chat Search",
-  "description": "Search and navigate AI chat history from Cline, Continue, Copilot and more",
-  "version": "0.1.0",
+  "description": "Search and navigate AI chat history from Cursor, Cline, Continue, Copilot and more",
+  "version": "0.2.1",
   "publisher": "ai-chat-tools",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sweetorange2022/AI-Chat-Search.git"
+  },
+  "license": "MIT",
   "engines": {
     "vscode": "^1.85.0"
   },
   "categories": [
     "Other"
   ],
-  "activationEvents": [],
+  "activationEvents": [
+    "onCommand:aiChatSearch.search",
+    "onCommand:aiChatSearch.refreshIndex"
+  ],
   "main": "./dist/extension.js",
   "contributes": {
     "commands": [
@@ -45,6 +53,41 @@
           "default": "",
           "description": "Custom Cline data path (auto-detected if empty)"
         },
+        "aiChatSearch.providers.continue.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Continue chat history search"
+        },
+        "aiChatSearch.providers.continue.dataPath": {
+          "type": "string",
+          "default": "",
+          "description": "Custom Continue data path (auto-detected if empty)"
+        },
+        "aiChatSearch.providers.cursor.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Cursor native chat history search"
+        },
+        "aiChatSearch.providers.cursor.dataPath": {
+          "type": "string",
+          "default": "",
+          "description": "Custom Cursor User directory or state.vscdb path (auto-detected if empty)"
+        },
+        "aiChatSearch.providers.cursor.maxSessions": {
+          "type": "number",
+          "default": 10,
+          "description": "Maximum Cursor conversations to index (0 = unlimited)"
+        },
+        "aiChatSearch.providers.copilot.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable Copilot Chat history search"
+        },
+        "aiChatSearch.providers.copilot.dataPath": {
+          "type": "string",
+          "default": "",
+          "description": "Custom Code User directory path for Copilot data (auto-detected if empty)"
+        },
         "aiChatSearch.maxResults": {
           "type": "number",
           "default": 50,
@@ -59,10 +102,11 @@
     }
   },
   "scripts": {
-    "build": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --minify",
-    "watch": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --sourcemap --watch",
+"build": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --external:node:sqlite --external:better-sqlite3 --format=cjs --platform=node --minify-syntax --minify-whitespace --tree-shaking=false && node scripts/copy-wasm.js",
+    "watch": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --external:node:sqlite --format=cjs --platform=node --sourcemap --watch",
+    "prewatch": "node scripts/copy-wasm.js",
     "lint": "tsc --noEmit",
-    "package": "vsce package"
+    "package": "npm run build && vsce package --allow-missing-repository --no-dependencies"
   },
   "devDependencies": {
     "@types/markdown-it": "^14.1.2",
@@ -73,6 +117,7 @@
     "typescript": "^5.3.3"
   },
   "dependencies": {
-    "markdown-it": "^14.2.0"
+    "markdown-it": "^14.2.0",
+    "sql.js": "^1.12.0"
   }
 }

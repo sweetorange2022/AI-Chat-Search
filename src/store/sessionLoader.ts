@@ -20,10 +20,10 @@ export class SessionLoader {
     for (const provider of this.providers) {
       const result = await this.loadProvider(provider);
       if (!result.ok) {
-        // Single provider failure does not block others — log and continue
         console.error(`AI Chat Search: Failed to load ${provider.name}:`, result.error);
         continue;
       }
+      console.log(`AI Chat Search: ${provider.name} loaded ${result.value} sessions.`);
       totalLoaded += result.value;
     }
 
@@ -35,6 +35,7 @@ export class SessionLoader {
     try {
       const isAvailable = await provider.detect();
       if (!isAvailable) {
+        console.warn(`AI Chat Search: ${provider.name} detect() returned false — skipped.`);
         return { ok: true, value: 0 };
       }
 
