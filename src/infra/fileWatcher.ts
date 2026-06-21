@@ -105,8 +105,8 @@ export class FileWatcher implements vscode.Disposable {
     const providers = this.loader.getProviderNames();
     if (!providers.includes(providerName)) return;
 
-    this.loader.loadAll().catch(err => {
-      console.error('AI Chat Search: Failed to reload after file change:', err);
+    this.loader.reloadProvider(providerName).catch(err => {
+      console.error(`AI Chat Search: Failed to reload ${providerName}:`, err);
     });
   }
 

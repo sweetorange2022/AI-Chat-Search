@@ -57,39 +57,46 @@ export class CopilotProvider implements ChatProvider {
   readonly displayName = 'Copilot Chat';
 
   private readonly appData: string;
+  private readonly editorDirs: readonly string[];
   private readonly maxSessions: number;
 
   constructor(customPath?: string, maxSessions?: number) {
     this.appData = customPath || process.env.APPDATA || path.join(os.homedir(), '.config');
     this.maxSessions = maxSessions ?? MAX_SESSIONS_DEFAULT;
+    this.editorDirs = customPath ? [path.basename(path.dirname(customPath)) || 'Code'] : ['Code', 'Cursor'];
   }
 
   async detect(): Promise<boolean> {
-    const codeDir = path.join(this.appData, 'Code', 'User');
-    try {
-      const stat = await fs.stat(codeDir);
-      return stat.isDirectory();
-    } catch {
-      return false;
+    for (const editor of this.editorDirs) {
+      const codeDir = path.join(this.appData, editor, 'User');
+      try {
+        const stat = await fs.stat(codeDir);
+        if (stat.isDirectory()) return true;
+      } catch { /* not found, try next */ }
     }
+    return false;
   }
 
   async loadAll(): Promise<readonly ConversationSession[]> {
     const sessions: ConversationSession[] = [];
 
-    // 1. Load from workspace storage chatSessions
-    await this.loadFromPath(
-      path.join(this.appData, 'Code', 'User', 'workspaceStorage'),
-      'chatSessions',
-      sessions,
-    );
+    for (const editor of this.editorDirs) {
+      const userDir = path.join(this.appData, editor, 'User');
 
-    // 2. Load from empty window chat sessions
-    await this.loadFromPath(
-      path.join(this.appData, 'Code', 'User', 'globalStorage'),
-      'emptyWindowChatSessions',
-      sessions,
-    );
+      // 1. Load from workspace storage chatSessions
+      await this.loadFromPath(
+        path.join(userDir, 'workspaceStorage'),
+        'chatSessions',
+        sessions,
+      );
+
+      // 2. Load from empty window chat sessions
+      await this.loadFromPath(
+        path.join(userDir, 'globalStorage'),
+        'emptyWindowChatSessions',
+        sessions,
+      );
+    }
 
     // Sort by creation date descending, limit
     sessions.sort((a, b) => b.createdAt - a.createdAt);

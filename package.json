@@ -2,7 +2,7 @@
   "name": "ai-chat-search",
   "displayName": "AI Chat Search",
   "description": "Search and navigate AI chat history from Cursor, Cline, Continue, Copilot and more",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "publisher": "ai-chat-tools",
   "repository": {
     "type": "git",
@@ -102,7 +102,7 @@
     }
   },
   "scripts": {
-"build": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --external:node:sqlite --external:better-sqlite3 --format=cjs --platform=node --minify-syntax --minify-whitespace --tree-shaking=false && node scripts/copy-wasm.js",
+    "build": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --external:node:sqlite --external:better-sqlite3 --format=cjs --platform=node --minify-syntax --minify-whitespace --tree-shaking=false && node scripts/copy-wasm.js",
     "watch": "esbuild src/extension.ts --bundle --outfile=dist/extension.js --external:vscode --external:node:sqlite --format=cjs --platform=node --sourcemap --watch",
     "prewatch": "node scripts/copy-wasm.js",
     "lint": "tsc --noEmit",

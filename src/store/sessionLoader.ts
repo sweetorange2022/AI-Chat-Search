@@ -54,4 +54,12 @@ export class SessionLoader {
   getProviderNames(): readonly string[] {
     return this.providers.map(p => p.name);
   }
+
+  /** Reload a single provider by name. Returns number of sessions loaded. */
+  async reloadProvider(providerName: string): Promise<number> {
+    const provider = this.providers.find(p => p.name === providerName);
+    if (!provider) return 0;
+    const result = await this.loadProvider(provider);
+    return result.ok ? result.value : 0;
+  }
 }

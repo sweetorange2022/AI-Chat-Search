@@ -19,6 +19,7 @@ export class QuickSearch implements vscode.Disposable {
   private currentResults: readonly SearchResult[] = [];
   private suppressActiveChange = false;
   private currentActiveIndex = 0;
+  private searchGeneration = 0;
 
   constructor(
     private readonly searchEngine: SearchEngine,
@@ -95,9 +96,13 @@ export class QuickSearch implements vscode.Disposable {
       return;
     }
 
+    const gen = ++this.searchGeneration;
     qp.busy = true;
 
     setTimeout(() => {
+      // Discard stale results from an earlier keystroke burst
+      if (gen !== this.searchGeneration) return;
+
       const resultSet = this.searchEngine.search({
         keyword: query,
         maxResults: DEFAULT_MAX_RESULTS,

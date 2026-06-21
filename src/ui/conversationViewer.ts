@@ -5,8 +5,6 @@ import * as os from 'os';
 import type { ConversationSession, ConversationMessage } from '../types/conversation';
 import { MessageRole } from '../types/conversation';
 
-const VIEWER_SCHEME = 'ai-chat-viewer';
-
 const ROLE_EMOJI: Record<string, string> = {
   [MessageRole.User]: '\u{1F464}',
   [MessageRole.Assistant]: '\u{1F916}',
@@ -21,19 +19,7 @@ const ROLE_LABEL: Record<string, string> = {
   [MessageRole.Tool]: '\u5de5\u5177',
 };
 
-const HEADING_PREFIX = '### ';
 const NO_SESSION_MESSAGE = 'No conversation loaded.';
-
-const ALL_MATCH_DECORATION = vscode.window.createTextEditorDecorationType({
-  backgroundColor: 'rgba(255, 213, 79, 0.3)',
-  borderRadius: '2px',
-});
-
-const PRIMARY_MATCH_DECORATION = vscode.window.createTextEditorDecorationType({
-  backgroundColor: 'rgba(255, 152, 0, 0.6)',
-  borderRadius: '2px',
-  outline: '2px solid rgba(255, 152, 0, 0.8)',
-});
 
 export class ConversationViewer implements vscode.TextDocumentContentProvider, vscode.Disposable {
   private readonly onDidChangeEmitter = new vscode.EventEmitter<vscode.Uri>();
@@ -85,7 +71,7 @@ export class ConversationViewer implements vscode.TextDocumentContentProvider, v
     return this.renderMarkdown(session);
   }
 
-  async openAtMessage(session: ConversationSession, messageIndex: number, keyword?: string): Promise<void> {
+  async openAtMessage(session: ConversationSession, _messageIndex: number, keyword?: string): Promise<void> {
     this.activeSession = session;
     let markdown = this.renderMarkdown(session);
 
@@ -111,52 +97,6 @@ export class ConversationViewer implements vscode.TextDocumentContentProvider, v
       await vscode.workspace.openTextDocument(fileUri);
       await vscode.window.showTextDocument(fileUri, { preview: true });
     }
-  }
-
-  private applyKeywordHighlights(editor: vscode.TextEditor, keyword: string, primaryLine: number): void {
-    const doc = editor.document;
-    const text = doc.getText();
-    const keywordLower = keyword.toLowerCase();
-    const allRanges: vscode.Range[] = [];
-    const primaryRanges: vscode.Range[] = [];
-    const lines = text.split('\n');
-    for (let lineIdx = 0; lineIdx < lines.length; lineIdx++) {
-      const lineLower = lines[lineIdx].toLowerCase();
-      let searchFrom = 0;
-      while (searchFrom < lineLower.length) {
-        const matchIdx = lineLower.indexOf(keywordLower, searchFrom);
-        if (matchIdx === -1) break;
-        const range = new vscode.Range(new vscode.Position(lineIdx, matchIdx), new vscode.Position(lineIdx, matchIdx + keyword.length));
-        allRanges.push(range);
-        if (Math.abs(lineIdx - primaryLine) <= 5) primaryRanges.push(range);
-        searchFrom = matchIdx + keyword.length;
-      }
-    }
-    editor.setDecorations(PRIMARY_MATCH_DECORATION, primaryRanges);
-    editor.setDecorations(ALL_MATCH_DECORATION, allRanges);
-  }
-
-  private findMessageLine(doc: vscode.TextDocument, messageIndex: number): number {
-    const lines = doc.getText().split('\n');
-    let count = 0;
-    for (let i = 0; i < lines.length; i++) {
-      if (lines[i].startsWith(HEADING_PREFIX)) {
-        if (count === messageIndex) return i;
-        count++;
-      }
-    }
-    return 0;
-  }
-
-  private findFirstKeywordLine(doc: vscode.TextDocument, keyword: string, fromLine: number): number {
-    const lines = doc.getText().split('\n');
-    const keywordLower = keyword.toLowerCase();
-    for (let i = fromLine; i < lines.length; i++) {
-      if (lines[i].toLowerCase().includes(keywordLower)) {
-        return i;
-      }
-    }
-    return -1;
   }
 
   /**
@@ -289,7 +229,5 @@ export class ConversationViewer implements vscode.TextDocumentContentProvider, v
 
   dispose(): void {
     this.onDidChangeEmitter.dispose();
-    ALL_MATCH_DECORATION.dispose();
-    PRIMARY_MATCH_DECORATION.dispose();
   }
 }

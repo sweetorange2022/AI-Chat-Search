@@ -154,7 +154,7 @@ function cmdLoad(dbPath, maxSessions, outFile) {
   if (outFile) {
     // For CLI testing, we still support writing the full array to file if needed, but streaming is primary
     // To keep simple, skip full file for now; the NDJSON is sufficient
-    process.stdout.write(JSON.stringify({ __done__: true, count: 0 }) + '\n');
+    process.stdout.write(JSON.stringify({ __done__: true, count: selected.length }) + '\n');
   }
 }
 

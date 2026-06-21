@@ -2,6 +2,40 @@
 
 本文档包含完整的项目信息和全部源码，可用于完整复现此插件。
 
+## 2026-06-21 — v0.2.2 Bug 修复与功能增强
+
+### 修复内容
+
+1. **修复 QuickSearch 搜索竞态条件**
+   - 快速连续输入时，多次搜索异步执行导致结果互相覆盖
+   - 新增 `searchGeneration` 计数器，丢弃过期搜索结果
+
+2. **修复 FileWatcher 每次变更都全量重载所有 Provider**
+   - 原实现 `reloadProvider()` 调用 `loader.loadAll()`，导致 Cursor 变更时同时重载 Cline/Continue/Copilot
+   - `SessionLoader` 新增 `reloadProvider(providerName)` 方法，仅重载变更的 Provider
+
+3. **修复 Copilot Provider 未支持 Cursor 环境**
+   - 原实现只扫描 `%APPDATA%/Code/`，漏掉 Cursor 中的 Copilot Chat 数据
+   - 改为遍历 `['Code', 'Cursor']` 两个编辑器目录
+
+4. **修复 cursor-worker.js 完成标记 count 硬编码为 0**
+   - `count: 0` → `count: selected.length`
+
+5. **移除 conversationViewer.ts 死代码**
+   - 移除 `VIEWER_SCHEME`、`HEADING_PREFIX`、`ALL_MATCH_DECORATION`、`PRIMARY_MATCH_DECORATION`
+   - 移除未使用的方法：`applyKeywordHighlights`、`findMessageLine`、`findFirstKeywordLine`
+
+6. **移除 previewManager.ts 死代码**
+   - 移除未使用的 `import * as path`
+   - 未使用参数 `_initialHtml`、`_keyword` 前缀标记
+
+### 新增
+
+- `test-v022.mjs` — 20 项全功能自测，覆盖所有核心模块
+- `SessionLoader.reloadProvider(providerName)` — 单 Provider 增量重载 API
+
+---
+
 ## 2026-06-16 — v0.2.1 构建修复与稳定性改进
 
 ### 修复内容

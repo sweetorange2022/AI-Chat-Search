@@ -1,5 +1,4 @@
 import * as vscode from 'vscode';
-import * as path from 'path';
 import MarkdownIt = require('markdown-it');
 
 const md = new MarkdownIt({
@@ -91,8 +90,8 @@ export class PreviewManager implements vscode.Disposable {
 
   private getWebviewContent(
     webview: vscode.Webview,
-    initialHtml: string,
-    keyword: string
+    _initialHtml: string,
+    _keyword: string
   ): string {
     const scriptUri = webview.asWebviewUri(
       vscode.Uri.joinPath(this.extensionUri, 'media', 'preview.js')
