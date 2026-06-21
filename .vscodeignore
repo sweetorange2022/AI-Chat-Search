@@ -21,3 +21,5 @@ supabase/
 .cursorignore
 .cursorrules
 .mcp.json
+test*.mjs
+*.test.ts
